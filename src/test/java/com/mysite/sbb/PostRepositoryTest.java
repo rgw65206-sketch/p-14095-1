@@ -6,7 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
@@ -14,6 +17,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PostRepositoryTest {
     @Autowired
     private QuestionRepository questionRepository;
+
+    @Autowired
+    private AnswerRepository answerRepository;
 
     @Test
     @DisplayName("findAll")
@@ -81,5 +87,38 @@ class PostRepositoryTest {
         questionRepository.delete(question);
 
         assertThat(questionRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("답변 생성")
+    @Transactional
+    void t8() {
+        Question question = questionRepository.findById(2).get();
+
+        Answer answer = new Answer();
+        answer.setContent("네 자동으로 생성됩니다.");
+        answer.setQuestion(question);
+        answer.setCreateDate(LocalDateTime.now());
+        answerRepository.save(answer);
+
+        assertThat(answer.getId()).isGreaterThan(0);
+    }
+
+    @Test
+    @DisplayName("답변 생성 by oneToMany")
+    @Transactional
+    void t9() {
+        Question question = questionRepository.findById(2).get();
+
+        int beforeCount = question.getAnswers().size();
+
+        Answer newAnswer = question.addAnswer("네 자동으로 생성됩니다.");
+
+        // 트랜잭션이 종료된 이후에 DB에 반영되기 때문에 현재는 일단 0으로 설정된다.
+        assertThat(newAnswer.getId()).isEqualTo(0);
+
+        int afterCount = question.getAnswers().size();
+
+        assertThat(afterCount).isEqualTo(beforeCount + 1);
     }
 }
